@@ -5,5 +5,5 @@ A simple API built wilh FastAPI and Python.
 - Create, Read, and Delete tasks.
 - Custom error handling (404).
 
-##Status
+## Status
 Work in Progress: Database and Authentication coming soon.
