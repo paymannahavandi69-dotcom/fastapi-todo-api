@@ -1,38 +1,43 @@
-from fastapi import FastAPI , HTTPException
-from pydantic import BaseModel 
+from fastapi import FastAPI
+from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 app = FastAPI()
 
-class Task(BaseModel):
-    id: int
-    title: str
-    done: bool = False
+engine = create_engine("sqlite:///school.db")
+Base = declarative_base()
 
-tasks = [
-    Task(id=1, title="Learn Python", done=True),
-    Task(id=2, title="Learn FastAPI", done=False)
-]
+class Student(Base):
+    __tablename__ = "students"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    age = Column(Integer)
+    grade = Column(String)
 
-@app.get("/tasks")
-def get_tasks():
-    return tasks
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
 
-@app.get("/tasks/{task_id}")
-def get_task(task_id: int):
-    for task in tasks:
-        if task.id == task_id:
-            return task
-    raise HTTPException(status_code=404, detail="Task not found")
+class StudentCreate(BaseModel):
+    name: str
+    age: int
+    grade: str
 
-@app.post("/tasks")
-def create_task(task: Task):
-    tasks.append(task)
-    return {"message": "Task added", "task": task}
+@app.post("/students")
+def create_student(student: StudentCreate):
+    session = Session()
+    new_student = Student(name=student.name, age=student.age, grade=student.grade)
+    session.add(new_student)
+    session.commit()
+    session.close()
+    return {"message": "Student created"}
 
-@app.delete("/tasks/{task_id}")
-def delete_task(task_id: int):
-    for i, task in enumerate(tasks):
-        if task.id == task_id:
-            tasks.pop(i)
-            return {"message": f"Task {task_id} deleted"}
-    raise HTTPException(status_code=404, detail="Task not found")
+@app.get("/students")
+def get_students():
+    session = Session()
+    students = session.query(Student).all()
+    result = []
+    for s in students:
+        result.append({"id": s.id, "name": s.name, "age": s.age, "grade": s.grade})
+    session.close()
+    return result
