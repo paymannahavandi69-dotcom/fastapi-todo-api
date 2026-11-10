@@ -1,43 +1,52 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import declarative_base, sessionmaker
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
 
 app = FastAPI()
+security = HTTPBearer()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-engine = create_engine("sqlite:///school.db")
-Base = declarative_base()
+SECRET_KEY = "mysecretkey"
+ALGORITHM = "HS256"
 
-class Student(Base):
-    __tablename__ = "students"
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    age = Column(Integer)
-    grade = Column(String)
+users_db = {}
 
-Base.metadata.create_all(engine)
-Session = sessionmaker(bind=engine)
+class User(BaseModel):
+    username: str
+    password: str
 
-class StudentCreate(BaseModel):
-    name: str
-    age: int
-    grade: str
+@app.post("/register")
+def register(user: User):
+    if user.username in users_db:
+        raise HTTPException(status_code=400, detail="User already exists")
+    hashed = pwd_context.hash(user.password)
+    users_db[user.username] = hashed
+    return {"message": "User registered"}
 
-@app.post("/students")
-def create_student(student: StudentCreate):
-    session = Session()
-    new_student = Student(name=student.name, age=student.age, grade=student.grade)
-    session.add(new_student)
-    session.commit()
-    session.close()
-    return {"message": "Student created"}
+@app.post("/login")
+def login(user: User):
+    if user.username not in users_db:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not pwd_context.verify(user.password, users_db[user.username]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    expire = datetime.utcnow() + timedelta(minutes=30)
+    token = jwt.encode({"sub": user.username, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/students")
-def get_students():
-    session = Session()
-    students = session.query(Student).all()
-    result = []
-    for s in students:
-        result.append({"id": s.id, "name": s.name, "age": s.age, "grade": s.grade})
-    session.close()
-    return result
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return username
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.get("/protected")
+def protected(username: str = Depends(get_current_user)):
+    return {"message": f"Hello, {username}!"}
