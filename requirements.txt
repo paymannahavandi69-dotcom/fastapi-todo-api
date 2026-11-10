@@ -1,3 +1,6 @@
 fastapi
 uvicorn
-sqlalchemy
+aqlalchemy
+python-jose
+passlib
+bcrypt
