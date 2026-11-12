@@ -1,21 +1,24 @@
 # FastAPI To-Do API
-A comprehensive API built with FastAPI and Python.
+A comprehensive RESTful API built with FastAPI and Python.
 
 ## Features
-- **CRUD Operations**: Create, Read, and Delete tasks.
+- **User Authentication**: Register and Login with JWT (JSON Web Tokens).
+- **Security**: Passwords are hashed using Bcrypt.
 - **Database**: SQLAlchemy with SQLite for persistent storage.
-- **Authentication**: User registration and login with hashed passwords (Bcrypt).
-- **Security**: JWT (JSON Web Tokens) for secure route protection.
-- **Error Handling**: Custom HTTP exceptions (404, 401, 400).
+- **CRUD Operations**: Create, Read, and Delete tasks.
+- **User Isolation**: Users can only see and delete their own tasks.
+- **File Upload**: Users can upload avatars with size and type validation.
+- **Error Handling**: Custom HTTP exceptions.
 
 ## Technologies Used
 - Python
 - FastAPI
-- Pydantic (Data Validation)
-- SQLAlchemy (Database ORM)
-- SQLite (Persistent Database)
-- Passlib & Bcrypt (Password Hashing)
+- Pydantic
+- SQLAlchemy
+- SQLite
+- Passlib & Bcrypt
 - Python-Jose (JWT)
+- Python-Multipart (File Uploads)
 
 ## How to run
 1. Install dependencies: `pip install -r requirements.txt`
